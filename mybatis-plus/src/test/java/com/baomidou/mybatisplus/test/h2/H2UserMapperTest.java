@@ -15,6 +15,7 @@
  */
 package com.baomidou.mybatisplus.test.h2;
 
+import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
@@ -22,10 +23,12 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.support.Range;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.test.h2.config.DBConfig;
 import com.baomidou.mybatisplus.test.h2.entity.H2User;
 import com.baomidou.mybatisplus.test.h2.entity.SuperEntity;
 import com.baomidou.mybatisplus.test.h2.enums.AgeEnum;
 import com.baomidou.mybatisplus.test.h2.mapper.H2UserMapper;
+import com.baomidou.mybatisplus.test.toolkit.JdbcUtils;
 
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +40,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
+
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -214,7 +220,11 @@ class H2UserMapperTest extends BaseTest {
 
     @Test
     @Order(Integer.MAX_VALUE)
-    void expectedDmlRowCountTest() {
+    void expectedDmlRowCountTest() throws SQLException {
+        DBConfig dbConfig = new DBConfig();
+        // 用于校验数据的新连接
+        Connection validateConnection = JdbcUtils.getNewConnection(DbType.H2, dbConfig.getJdbcConnCfg());
+
         // @TableLogic private Integer deleted;
         userMapper.delete(new QueryWrapper<>());
         int count = userMapper.selectCount(new QueryWrapper<>());
@@ -222,9 +232,9 @@ class H2UserMapperTest extends BaseTest {
         String name = "name1", nameNew = "name1New";
         try {
             userMapper.update(new H2User(),
-                new UpdateWrapper<H2User>().lambda().setExpectedDmlRowCount(Range.between(1, Integer.MAX_VALUE))
-                    .eq(H2User::getName, name)
-                    .set(H2User::getName, nameNew)
+                    new UpdateWrapper<H2User>().lambda().setExpectedDmlRowCount(Range.between(1, Integer.MAX_VALUE))
+                            .eq(H2User::getName, name)
+                            .set(H2User::getName, nameNew)
             );
             Assertions.fail();
         } catch (DataAccessException e) {
@@ -235,18 +245,20 @@ class H2UserMapperTest extends BaseTest {
         userMapper.insert(u1);
         count = userMapper.selectCount(new QueryWrapper<>());
         Assertions.assertEquals(1, count);
+        Assertions.assertEquals(1, JdbcUtils.selectCount(validateConnection, "select count(1) from h2user where name='" + name + "'"));
 
         int updateCount = userMapper.update(new H2User(),
-            new UpdateWrapper<H2User>().lambda().setExpectedDmlRowCount(Range.is(1))
-                .eq(H2User::getName, name)
-                .set(H2User::getName, nameNew)
+                new UpdateWrapper<H2User>().lambda().setExpectedDmlRowCount(Range.is(1))
+                        .eq(H2User::getName, name)
+                        .set(H2User::getName, nameNew)
         );
         Assertions.assertEquals(1, updateCount);
         Assertions.assertEquals(1, userMapper.selectCount(
                 new QueryWrapper<H2User>().lambda().eq(H2User::getName, nameNew)));
+        Assertions.assertEquals(1, JdbcUtils.selectCount(validateConnection, "select count(1) from h2user where name='" + nameNew + "'"));
 
         count = userMapper.selectCount(new QueryWrapper<H2User>().lambda()
-            .eq(H2User::getName, nameNew)
+                .eq(H2User::getName, nameNew)
         );
         Assertions.assertEquals(1, count);
 
@@ -255,9 +267,20 @@ class H2UserMapperTest extends BaseTest {
         Assertions.assertEquals(1, userMapper.selectCount(
                 new QueryWrapper<H2User>().lambda().eq(H2User::getName, name)));
 
+        Boolean executeRet = transactionTemplate.execute(transactionStatus -> {
+            userMapper.update(new H2User(),
+                    new UpdateWrapper<H2User>().lambda().setExpectedDmlRowCount(Range.is(1))
+                            .eq(H2User::getName, name)
+                            .set(H2User::getName, nameNew)
+            );
+            return true;
+        });
+        Assertions.assertTrue(executeRet != null && executeRet);
+        Assertions.assertEquals(1, JdbcUtils.selectCount(validateConnection, "select count(1) from h2user where name='" + nameNew + "'"));
+
         try {
             userMapper.delete(new QueryWrapper<H2User>().lambda().setExpectedDmlRowCount(Range.is(1))
-                .eq(H2User::getName, "")
+                    .eq(H2User::getName, "")
             );
             Assertions.fail();
         } catch (DataAccessException e) {
@@ -268,14 +291,16 @@ class H2UserMapperTest extends BaseTest {
         userMapper.delete(new QueryWrapper<H2User>().setExpectedDmlRowCount(Range.is(2)));
 
         try {
-            Boolean executeRet = transactionTemplate.execute(transactionStatus -> {
+            transactionTemplate.execute(transactionStatus -> {
                 userMapper.delete(new QueryWrapper<H2User>().setExpectedDmlRowCount(Range.is(2)));
                 return true;
             });
-            Assertions.assertTrue(executeRet != null && !executeRet);
+            Assertions.fail();
         } catch (DataAccessException e) {
             logger.info("expected ex, exClassName={}, exMsg={}", e.getClass().getName(), e.getMessage());
         }
+
+        validateConnection.close();
     }
 
     @Test

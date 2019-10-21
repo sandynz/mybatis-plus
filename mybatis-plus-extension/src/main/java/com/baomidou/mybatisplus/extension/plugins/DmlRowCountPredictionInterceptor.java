@@ -154,10 +154,12 @@ public class DmlRowCountPredictionInterceptor implements Interceptor {
         Connection connection = transaction.getConnection();
 
         final boolean isOriginAutoCommit = connection.getAutoCommit();
+        if (logger.isDebugEnabled()) {
+            logger.debug("get connection={}, isOriginAutoCommit={}", connection, isOriginAutoCommit);
+        }
         if (isOriginAutoCommit) {
             // 如果原始连接没有开启手动事务，那自动开启
             try {
-                //TODO 非Spring环境测试；数据库连接池测试；
                 connection.setAutoCommit(false);
             } catch (SQLException e) {
                 logger.warn("setAutoCommit to false failed, connection={}", connection, e);
@@ -198,7 +200,9 @@ public class DmlRowCountPredictionInterceptor implements Interceptor {
                 }
             }
             if (expectedDmlRowCount == null) {
-                commitForConn(connection, "expectedDmlRowCountNull");
+                if (isOriginAutoCommit) {
+                    commitForConn(connection, "expectedDmlRowCountNull");
+                }
                 return result;
             }
 
@@ -227,16 +231,26 @@ public class DmlRowCountPredictionInterceptor implements Interceptor {
     }
 
     private void commitForConn(Connection connection, String callFrom) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("commit, callFrom={}, connection={}", callFrom, connection);
+        }
         try {
             connection.commit();
+            // 重置数据库连接的自动提交属性。这个连接可能是在连接池里，会在下一次重用、并且没有重置自动提交属性。
+            connection.setAutoCommit(true);
         } catch (SQLException e) {
             logger.warn("commit failed, ignore, callFrom={}, connection={}", callFrom, connection, e);
         }
     }
 
     private void rollbackForConn(Connection connection, String callFrom) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("rollback, callFrom={}, connection={}", callFrom, connection);
+        }
         try {
             connection.rollback();
+            // 重置数据库连接的自动提交属性
+            connection.setAutoCommit(true);
         } catch (SQLException e) {
             logger.warn("rollback failed, ignore, callFrom={}, connection={}", callFrom, connection, e);
         }

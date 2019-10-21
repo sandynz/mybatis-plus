@@ -32,6 +32,8 @@ import java.io.IOException;
 
 import javax.sql.DataSource;
 
+import com.baomidou.mybatisplus.test.toolkit.JdbcConnCfg;
+
 /**
  * @author miemie
  * @since 2018/6/7
@@ -40,13 +42,21 @@ import javax.sql.DataSource;
 @EnableTransactionManagement
 public class DBConfig {
 
+    private final JdbcConnCfg jdbcConnCfg = new JdbcConnCfg()
+            .setHost("localhost").setPort(3306).setDatabase("mybatis_plus")
+            .setUsername("root").setPassword("123456");
+
+    public JdbcConnCfg getJdbcConnCfg() {
+        return jdbcConnCfg;
+    }
+
     @Bean("dataSource")
     public DataSource dataSource() {
         SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
         dataSource.setDriverClass(com.mysql.cj.jdbc.Driver.class);
-        dataSource.setUrl("jdbc:mysql://localhost:3306/mybatis_plus?useSSL=false&useUnicode=true&characterEncoding=UTF-8");
-        dataSource.setUsername("root");
-        dataSource.setPassword("123456");
+        dataSource.setUrl(String.format("jdbc:mysql://%s:%d/%s?useSSL=false&useUnicode=true&characterEncoding=UTF-8", jdbcConnCfg.getHost(), jdbcConnCfg.getPort(), jdbcConnCfg.getDatabase()));
+        dataSource.setUsername(jdbcConnCfg.getUsername());
+        dataSource.setPassword(jdbcConnCfg.getPassword());
         return dataSource;
     }
 

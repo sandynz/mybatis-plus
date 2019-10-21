@@ -33,6 +33,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.baomidou.mybatisplus.test.toolkit.JdbcConnCfg;
+
 /**
  * H2 Memory Database config
  *
@@ -43,13 +45,21 @@ import org.springframework.transaction.support.TransactionTemplate;
 @EnableTransactionManagement
 public class DBConfig {
 
+    private final JdbcConnCfg jdbcConnCfg = new JdbcConnCfg()
+            .setUrl("jdbc:h2:mem:test;MODE=mysql;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE")
+            .setUsername("sa").setPassword("");
+
+    public JdbcConnCfg getJdbcConnCfg() {
+        return jdbcConnCfg;
+    }
+
     @Bean
     public DataSource dataSource(){
         SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
         dataSource.setDriver(new Driver());
-        dataSource.setUrl("jdbc:h2:mem:test;MODE=mysql;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE");
-        dataSource.setUsername("sa");
-        dataSource.setPassword("");
+        dataSource.setUrl(jdbcConnCfg.getUrl());
+        dataSource.setUsername(jdbcConnCfg.getUsername());
+        dataSource.setPassword(jdbcConnCfg.getPassword());
         return dataSource;
     }
 
