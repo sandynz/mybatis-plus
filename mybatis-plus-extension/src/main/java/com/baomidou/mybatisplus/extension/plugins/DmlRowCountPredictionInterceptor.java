@@ -157,6 +157,7 @@ public class DmlRowCountPredictionInterceptor implements Interceptor {
         if (isOriginAutoCommit) {
             // 如果原始连接没有开启手动事务，那自动开启
             try {
+                //TODO 非Spring环境测试；数据库连接池测试；
                 connection.setAutoCommit(false);
             } catch (SQLException e) {
                 logger.warn("setAutoCommit to false failed, connection={}", connection, e);

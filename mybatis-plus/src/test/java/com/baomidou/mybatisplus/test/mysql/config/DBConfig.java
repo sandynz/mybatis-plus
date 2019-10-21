@@ -18,12 +18,15 @@ package com.baomidou.mybatisplus.test.mysql.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import org.springframework.jdbc.datasource.init.DataSourceInitializer;
 import org.springframework.jdbc.datasource.init.DatabasePopulator;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.io.IOException;
 
@@ -53,6 +56,11 @@ public class DBConfig {
     }
 
     @Bean
+    public TransactionTemplate transactionTemplate(PlatformTransactionManager transactionManager) {
+        return new TransactionTemplate(transactionManager);
+    }
+
+    @Bean
     public DataSourceInitializer dataSourceInitializer(DataSource dataSource) throws IOException {
         final DataSourceInitializer initializer = new DataSourceInitializer();
         initializer.setDataSource(dataSource);
@@ -69,4 +77,10 @@ public class DBConfig {
         );
         return resourceDatabasePopulator;
     }
+
+    @Bean
+    public JdbcTemplate jdbcTemplate(DataSource ds){
+        return new JdbcTemplate(ds);
+    }
+
 }

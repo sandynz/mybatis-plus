@@ -21,10 +21,12 @@ import com.baomidou.mybatisplus.core.config.GlobalConfig;
 import com.baomidou.mybatisplus.core.injector.AbstractMethod;
 import com.baomidou.mybatisplus.core.injector.DefaultSqlInjector;
 import com.baomidou.mybatisplus.core.parser.ISqlParser;
+import com.baomidou.mybatisplus.core.toolkit.support.Range;
 import com.baomidou.mybatisplus.extension.MybatisMapWrapperFactory;
 import com.baomidou.mybatisplus.extension.injector.methods.additional.AlwaysUpdateSomeColumnById;
 import com.baomidou.mybatisplus.extension.injector.methods.additional.InsertBatchSomeColumn;
 import com.baomidou.mybatisplus.extension.injector.methods.additional.LogicDeleteByIdWithFill;
+import com.baomidou.mybatisplus.extension.plugins.DmlRowCountPredictionInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.OptimisticLockerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.PaginationInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.tenant.TenantHandler;
@@ -80,6 +82,11 @@ public class MybatisPlusConfig {
         sqlSessionFactory.setConfiguration(configuration);
         /* 自动填充插件 */
         globalConfig.setMetaObjectHandler(new MysqlMetaObjectHandler());
+        /* DML操作记录数预言拦截器 */
+        configuration.addInterceptor(new DmlRowCountPredictionInterceptor());
+        GlobalConfig.DmlRowCountPredictionConfig dmlRowCountPredictionConfig = globalConfig.getDmlRowCountPredictionConfig();
+        dmlRowCountPredictionConfig.setPredictionEnabled(true).setDefaultExpectedDmlRowCountEnabled(false)
+                .setDefaultExpectedDmlRowCount(Range.between(1, 1));
         sqlSessionFactory.setGlobalConfig(globalConfig);
         return sqlSessionFactory.getObject();
     }
