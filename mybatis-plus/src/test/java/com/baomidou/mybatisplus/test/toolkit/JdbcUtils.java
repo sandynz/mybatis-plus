@@ -22,6 +22,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,17 +87,16 @@ public class JdbcUtils {
     }
 
     /**
-     * 查询数据列表
+     * 查询单条数据
      *
      * @param connection 仅用于查询，不会关闭连接
      * @param sql        查询语句
      */
-    public static Map<String, Object> selectList(Connection connection, String sql) throws SQLException {
+    public static Map<String, Object> selectOne(Connection connection, String sql) throws SQLException {
         if (sql == null) {
             throw new NullPointerException("sql null");
         }
         logger.info("selectList, sql={}", sql);
-        Map<String, Object> map = new HashMap<>();
         try (Statement statement = connection.createStatement()) {
             try (ResultSet resultSet = statement.executeQuery(sql)) {
                 ResultSetMetaData metaData = resultSet.getMetaData();
@@ -104,15 +104,19 @@ public class JdbcUtils {
                 for (int column = 1, columnCount = metaData.getColumnCount(); column <= columnCount; column++) {
                     columnNameList.add(metaData.getColumnName(column));
                 }
-                while (resultSet.next()) {
+                if (resultSet.next()) {
+                    Map<String, Object> map = new HashMap<>();
                     for (String columnName : columnNameList) {
                         map.put(columnName, resultSet.getObject(columnName));
                     }
+                    logger.info("result map={}", map);
+                    return map;
+                } else {
+                    logger.info("result empty");
+                    return Collections.emptyMap();
                 }
             }
         }
-        logger.info("result map={}", map);
-        return map;
     }
 
 }

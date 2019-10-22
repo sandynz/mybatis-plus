@@ -83,7 +83,7 @@ class DmlRowCountPredictionMysqlSpringTest {
                         .set(CommonData::getTestStr, strNew)
         );
         Assertions.assertEquals(1, updateCount);
-        Map<String, Object> commonData = JdbcUtils.selectList(validateConnection, "select * from common_data where id=" + id1);
+        Map<String, Object> commonData = JdbcUtils.selectOne(validateConnection, "select * from common_data where id=" + id1);
         Assertions.assertEquals(strNew, commonData.get("test_str"));
 
         try {
@@ -107,7 +107,7 @@ class DmlRowCountPredictionMysqlSpringTest {
             return count == 1;
         });
         Assertions.assertTrue(executeRet != null && executeRet);
-        commonData = JdbcUtils.selectList(validateConnection, "select * from common_data where id=" + id1);
+        commonData = JdbcUtils.selectOne(validateConnection, "select * from common_data where id=" + id1);
         Assertions.assertEquals(str, commonData.get("test_str"));
 
         try {
